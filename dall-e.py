@@ -5,6 +5,9 @@ import requests
 import random
 import datetime
 
+IMAGES_DIR = "images"
+FAVORITES_DIR = "{}/favorites".format(IMAGES_DIR)
+
 
 class DallE:
     def __init__(self):
@@ -32,11 +35,14 @@ class DallE:
 
     def process_user_input(self, user_input):
         if user_input == "save":
-            # Save previous image to favorites
+            # Save previous image to favorites if it exists
             if not self.file_name or not self.image_content:
-                file_path = "images/favorites/{}".format(self.file_name)
-                self.write_image_file(file_path, self.image_content, self.prompt)
                 print("No image to save.")
+                return
+            file_path = "{}/{}".format(FAVORITES_DIR, self.file_name)
+            self.write_image_file(file_path, self.image_content, self.prompt, True)
+            print("Saved image to {}".format(file_path))
+            return
 
         elif user_input == "quit":
             # Quit
@@ -53,6 +59,23 @@ class DallE:
         response = openai.Image.create(prompt=prompt, n=1, size="1024x1024")
         return response["data"][0]["url"]
 
+    def delete_oldest_image_if_necessary(self):
+        # Get all images in the images folder
+        images = os.listdir(IMAGES_DIR)
+        images = [i for i in images if i.endswith(".png")]
+        if len(images) < 100:
+            return
+
+        # Sort images by creation date
+        images = sorted(
+            images, key=lambda i: os.path.getctime("{}/{}".format(IMAGES_DIR, i))
+        )
+
+        # Delete the oldest image
+        oldest_image = images[0]
+        os.remove("{}/{}".format(IMAGES_DIR, oldest_image))
+        print("Deleted oldest image:", oldest_image)
+
     def download_image(self, image_url, prompt):
         # Fetch image and store content in memory
         response = requests.get(image_url)
@@ -62,17 +85,24 @@ class DallE:
         self.file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
         # Save image in images folder
-        file_path = "images/{}".format(self.file_name)
+        file_path = "{}/{}".format(IMAGES_DIR, self.file_name)
         self.write_image_file(file_path, self.image_content, prompt)
+
+        # Delete the oldest image in the images folder if necessary
+        self.delete_oldest_image_if_necessary()
 
         # Also cache image as "recent.png" for easier lookup
-        file_path = "images/recent.png".format(self.file_name)
+        file_path = "{}/recent".format(IMAGES_DIR, self.file_name)
         self.write_image_file(file_path, self.image_content, prompt)
 
-    def write_image_file(self, file_path, content, prompt):
-        with open(file_path, "wb") as f:
+    def write_image_file(self, file_path, content, prompt, write_metadata=False):
+        image_path = "{}.png".format(file_path)
+        with open(image_path, "wb") as f:
             f.write(self.image_content)
-        os.setxattr(file_path, "user.prompt", bytes(prompt, "utf-8"))
+        if write_metadata:
+            metadata_path = "{}.metadata.txt".format(file_path)
+            with open(metadata_path, "w") as f:
+                f.write(prompt)
         print("Saved image in", file_path)
 
 

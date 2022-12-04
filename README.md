@@ -41,4 +41,4 @@ Enter 'save' to save the previous image in the favorites folder.
 ⎊:
 ```
 
-The images will be in the `images` folder and the names are timestamps.  The prompt used to generate the image is saved in the metadata of the file.
+The images will be in the `images` folder and the names are timestamps. The metadata is saved as a separate file with the same name if it is favorited.
