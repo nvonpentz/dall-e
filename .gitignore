@@ -1,0 +1,5 @@
+.env
+images/*
+!images/.gitkeep
+images/favorites/*
+images/favorites/.gitkeep
