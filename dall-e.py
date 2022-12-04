@@ -1,5 +1,6 @@
 import openai
 import os
+import readline
 import requests
 import random
 import datetime
